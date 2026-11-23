@@ -37,11 +37,14 @@ const state = {
   repeat: 'off',     // 'off' | 'all' | 'one'
   speed: 33,
   changing: false,   // el brazo se está levantando para cambiar de disco
+  lowering: false,   // la aguja está bajando hacia el disco (aún no suena)
   seeking: false,
 };
 
 let nextId = 1;
 let changeTimer = null;
+let lowerTimer = null;
+const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
 // ===== Utilidades =====
 function formatTime(sec) {
@@ -59,10 +62,15 @@ function isPlaying() {
   return !audio.paused && !audio.ended;
 }
 
+// Sonando o con la aguja bajando: el plato gira y el brazo va hacia el disco
+function isActive() {
+  return (isPlaying() || state.lowering) && !state.changing;
+}
+
 // ===== Animación: brazo y vinilo =====
 function updateArm() {
   let angle = ARM_REST;
-  if (isPlaying() && !state.changing) {
+  if (isActive()) {
     const progress = audio.duration ? audio.currentTime / audio.duration : 0;
     angle = ARM_START + (ARM_END - ARM_START) * Math.min(Math.max(progress, 0), 1);
   }
@@ -70,10 +78,11 @@ function updateArm() {
 }
 
 function updatePlayingState() {
-  const playing = isPlaying() && !state.changing;
+  const playing = isActive();
+  const busy = isPlaying() || state.lowering;
   deck.classList.toggle('is-playing', playing);
-  ui.play.classList.toggle('playing', isPlaying());
-  ui.play.setAttribute('aria-label', isPlaying() ? 'Pausar' : 'Reproducir');
+  ui.play.classList.toggle('playing', busy);
+  ui.play.setAttribute('aria-label', busy ? 'Pausar' : 'Reproducir');
   const active = ui.playlist.querySelector('li.active');
   if (active) active.classList.toggle('playing', playing);
   updateArm();
@@ -117,7 +126,7 @@ function renderPlaylist() {
     li.style.setProperty('--hue', t.hue);
     if (i === state.current) {
       li.classList.add('active');
-      if (isPlaying() && !state.changing) li.classList.add('playing');
+      if (isActive()) li.classList.add('playing');
     }
 
     const disc = document.createElement('span');
@@ -155,13 +164,15 @@ function removeTrack(i) {
   if (!state.tracks.length) {
     clearTimeout(changeTimer);
     state.changing = false;
+    cancelLowering();
     audio.pause();
     audio.removeAttribute('src');
     audio.load();
     state.current = -1;
     showTrackInfo();
   } else if (i === state.current) {
-    const wasPlaying = isPlaying();
+    const wasPlaying = isPlaying() || state.lowering;
+    cancelLowering();
     const nextIndex = Math.min(i, state.tracks.length - 1);
     state.current = -1;
     loadTrack(nextIndex);
@@ -203,24 +214,41 @@ function showTrackInfo() {
   ui.labelTitle.textContent = t.name;
 }
 
+// Bajar la aguja y, solo cuando el brazo se ha detenido sobre el disco,
+// empezar a sonar.
 function play() {
   if (state.current === -1 && state.tracks.length) loadTrack(0);
-  if (state.current === -1) return;
-  audio.play().catch((err) => {
-    if (err.name === 'AbortError') return; // se cambió de pista mientras cargaba
-    ui.trackSub.textContent = 'No se puede reproducir este archivo (formato no compatible)';
-  });
+  if (state.current === -1 || state.lowering) return;
+  state.lowering = true;
+  updatePlayingState(); // el brazo empieza a moverse hacia el disco
+  lowerTimer = setTimeout(() => {
+    state.lowering = false;
+    audio.play().catch((err) => {
+      if (err.name === 'AbortError') return; // se cambió de pista mientras cargaba
+      ui.trackSub.textContent = 'No se puede reproducir este archivo (formato no compatible)';
+    }).finally(updatePlayingState);
+    updatePlayingState();
+  }, reducedMotion.matches ? 0 : ARM_MOVE_MS);
+}
+
+function cancelLowering() {
+  clearTimeout(lowerTimer);
+  state.lowering = false;
 }
 
 function togglePlay() {
   if (state.changing) return;
-  if (isPlaying()) audio.pause();
+  if (state.lowering) {
+    cancelLowering(); // se pulsa pausa mientras baja: el brazo vuelve
+    updatePlayingState();
+  } else if (isPlaying()) audio.pause();
   else play();
 }
 
 function stop() {
   clearTimeout(changeTimer);
   state.changing = false;
+  cancelLowering();
   audio.pause();
   if (audio.src) audio.currentTime = 0;
   updatePlayingState();
@@ -231,6 +259,7 @@ function stop() {
 function playIndex(i) {
   if (!state.tracks[i]) return;
   clearTimeout(changeTimer);
+  cancelLowering();
 
   if (isPlaying() || state.changing) {
     state.changing = true;
