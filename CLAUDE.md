@@ -27,6 +27,8 @@ The arm angle constants are tied to the turntable geometry in `styles.css` (plat
 
 Track changes while playing go through `playIndex()`: it sets `state.changing`, pauses (arm lifts to rest), and after `ARM_MOVE_MS` loads and plays the new track, so the arm visibly returns and drops again.
 
+`play()` never starts the audio immediately: it sets `state.lowering` (the platter spins and the arm moves onto the record) and calls `audio.play()` only after `ARM_MOVE_MS` (0 with `prefers-reduced-motion`), so sound starts once the needle has stopped. Pressing play/pause during the descent cancels it (`cancelLowering()`).
+
 ## Visual design (cyberpunk)
 
 Dark-only theme; palette tokens live on `:root` in `styles.css` and each colour has one job: magenta `--neon` only on the vinyl glow, `--cyan` for the needle and active/pressed states, `--sodium` amber for the strobe ring and 45 rpm. Label ring colours cycle through `LABEL_HUES` in `script.js` (keep them in that palette). Font is Chakra Petch from Google Fonts (falls back to system sans offline).
