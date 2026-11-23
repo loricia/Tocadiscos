@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tocadiscos</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="app">
+    <header class="app-header">
+      <h1>Tocadiscos</h1>
+      <p class="subtitle">Arrastra tus canciones al aparato y deja que gire</p>
+    </header>
+
+    <div class="layout">
+      <!-- ===== Aparato: tocadiscos + frontal de controles ===== -->
+      <section class="device">
+        <div class="deck" id="deck" aria-label="Tocadiscos">
+          <span class="screw s1"></span><span class="screw s2"></span>
+          <span class="screw s3"></span><span class="screw s4"></span>
+          <div class="vents" aria-hidden="true"></div>
+
+          <div class="platter">
+            <div class="strobe" aria-hidden="true"></div>
+            <div class="vinyl" id="vinyl" title="Reproducir o pausar">
+              <div class="label" id="label">
+                <span class="label-title" id="labelTitle">Sin disco</span>
+                <span class="label-hole"></span>
+              </div>
+            </div>
+            <div class="vinyl-sheen"></div>
+          </div>
+
+          <!-- Brazo: gira alrededor de su pivote -->
+          <div class="arm" id="arm" title="Reproducir o pausar">
+            <div class="arm-counterweight"></div>
+            <div class="arm-rod"><span class="arm-piston"></span></div>
+            <div class="arm-head"><div class="arm-needle"></div></div>
+          </div>
+          <div class="arm-pivot"></div>
+          <div class="arm-rest"></div>
+
+          <button class="speed" id="speedBtn" type="button" aria-label="Cambiar velocidad">
+            <span class="speed-value" id="speedValue">33</span>
+            <span class="speed-unit">rpm</span>
+          </button>
+          <div class="power-light" aria-hidden="true"></div>
+        </div>
+
+        <div class="fascia">
+          <div class="now-playing">
+            <div class="track-title" id="trackTitle">Ninguna canción cargada</div>
+            <div class="track-sub" id="trackSub">Arrastra tus canciones aquí o pulsa «Añadir canciones»</div>
+          </div>
+
+          <div class="progress">
+            <span class="time" id="currentTime">0:00</span>
+            <input type="range" id="seek" min="0" max="1000" value="0" step="1" aria-label="Progreso" disabled>
+            <span class="time" id="duration">0:00</span>
+          </div>
+
+          <div class="controls">
+            <button class="ctrl" id="prevBtn" type="button" aria-label="Anterior" title="Anterior" disabled>
+              <svg viewBox="0 0 24 24"><path d="M19 20 9 12l10-8v16zM5 19V5"/></svg>
+            </button>
+            <button class="ctrl play" id="playBtn" type="button" aria-label="Reproducir" title="Reproducir o pausar (espacio)" disabled>
+              <svg class="icon-play" viewBox="0 0 24 24"><path d="M7 4v16l13-8z"/></svg>
+              <svg class="icon-pause" viewBox="0 0 24 24"><path d="M7 4h3v16H7zM14 4h3v16h-3z"/></svg>
+            </button>
+            <button class="ctrl" id="nextBtn" type="button" aria-label="Siguiente" title="Siguiente" disabled>
+              <svg viewBox="0 0 24 24"><path d="m5 4 10 8-10 8V4zM19 5v14"/></svg>
+            </button>
+            <button class="ctrl" id="stopBtn" type="button" aria-label="Detener" title="Detener" disabled>
+              <svg viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg>
+            </button>
+
+            <span class="controls-gap"></span>
+
+            <button class="ctrl toggle" id="shuffleBtn" type="button" aria-label="Aleatorio" aria-pressed="false" title="Aleatorio">
+              <svg viewBox="0 0 24 24"><path d="M16 3h5v5M4 20 21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>
+            </button>
+            <button class="ctrl toggle" id="repeatBtn" type="button" aria-label="Repetir" aria-pressed="false" title="Repetir: no">
+              <svg viewBox="0 0 24 24"><path d="m17 1 4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+              <span class="repeat-one" aria-hidden="true">1</span>
+            </button>
+          </div>
+
+          <div class="volume">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4V5zM15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/></svg>
+            <input type="range" id="volume" min="0" max="1" step="0.01" value="0.8" aria-label="Volumen">
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== Cola de canciones ===== -->
+      <aside class="queue">
+        <div class="queue-head">
+          <h2>Cola <span class="count" id="count">0</span></h2>
+          <label class="add-btn">
+            <input type="file" id="fileInput" accept="audio/*" multiple hidden>
+            Añadir canciones
+          </label>
+        </div>
+        <ol class="playlist" id="playlist"></ol>
+        <p class="empty" id="empty">La cola está vacía. Suelta archivos de audio en cualquier parte de la ventana.</p>
+        <p class="shortcuts"><kbd>Espacio</kbd> reproduce o pausa, <kbd>←</kbd><kbd>→</kbd> salta 5 s, <kbd>↑</kbd><kbd>↓</kbd> cambia el volumen.</p>
+      </aside>
+    </div>
+  </main>
+
+  <div class="drop-overlay" id="dropOverlay">Suelta para añadir a la cola</div>
+  <audio id="audio" preload="metadata"></audio>
+
+  <script src="script.js"></script>
+</body>
+</html>
